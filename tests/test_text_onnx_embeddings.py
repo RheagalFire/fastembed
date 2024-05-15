@@ -116,3 +116,37 @@ def test_parallel_processing(n_dims, model_name):
     assert embeddings.shape == (200, n_dims)
     assert np.allclose(embeddings, embeddings_2, atol=1e-3)
     assert np.allclose(embeddings, embeddings_3, atol=1e-3)
+
+def test_sentence_transformers_compatibility():
+    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    model = TextEmbedding(model_name=model_name)
+
+    docs = ["This is a test sentence.", "Another test sentence."]
+    embeddings = list(model.embed(docs))
+    embeddings = np.stack(embeddings, axis=0)
+
+    # The expected shape of the embeddings should be (number of docs, model dimensions)
+    expected_shape = (len(docs), 384)  # 384 is the expected dimension for MiniLM-L6-v2
+    assert embeddings.shape == expected_shape, f"Embeddings shape mismatch for model {model_name}"
+
+def test_identical_sentences_embedding_similarity():
+    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    model = TextEmbedding(model_name=model_name)
+
+    identical_docs = ["This is a test sentence."] * 2  # Two identical sentences
+    embeddings = list(model.embed(identical_docs))
+    embeddings = np.stack(embeddings, axis=0)
+
+    # The embeddings for identical sentences should be very similar, if not the same
+    assert np.allclose(embeddings[0], embeddings[1], atol=1e-3), f"Embeddings for identical sentences should be similar for model {model_name}"
+
+def test_different_sentences_embedding_dissimilarity():
+    model_name = "sentence-transformers/all-MiniLM-L6-v2"
+    model = TextEmbedding(model_name=model_name)
+
+    different_docs = ["This is a test sentence.", "This is a different test sentence."]
+    embeddings = list(model.embed(different_docs))
+    embeddings = np.stack(embeddings, axis=0)
+
+    # The embeddings for different sentences should not be identical
+    assert not np.allclose(embeddings[0], embeddings[1], atol=1e-3), f"Embeddings for different sentences should not be identical for model {model_name}"
